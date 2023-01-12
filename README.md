@@ -7,6 +7,10 @@ Chapter Statistical Report is a SourceMod plugin that *obviously* written in Sou
 - csr_ignore_bots_kills (default: 0)
 - csr_only_human_player (default: 0)
 
+## Commands
+- sm_stats
+- sm_teamstats
+
 ## Note
 CSR only work for Left 4 Dead 2.\
 Left 4 Dead is untested yet.
