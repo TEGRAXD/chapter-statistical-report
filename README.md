@@ -12,7 +12,8 @@ CSR only work for Left 4 Dead 2.\
 Left 4 Dead is untested yet.
 
 ## Installation
-Put chapter_statistical_report.smx in `path/to/server/left4dead2/addons/plugins/<here>`
+Put `chapter_statistical_report.smx` in `path/to/server/left4dead2/sourcemod/addons/plugins/<here>`\
+cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemod/l4d2_chapter_statistical_report.cfg`
 
 ## Screenshot
 ![](static/command.png)
