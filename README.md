@@ -18,6 +18,9 @@ cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemo
 ## Screenshot
 ![](static/command.png)
 
+## AlliedModders
+https://forums.alliedmods.net/showthread.php?t=341241
+
 ## License
 ```
 MIT License
