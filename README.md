@@ -1,5 +1,5 @@
 # Chapter Statistical Report
-Chapter Statistical Report is a SourceMod plugin that *obviously* written in SourcePawn that allow to inform players their statistic such as CI & SI kills and headshot.
+Chapter Statistical Report is a SourceMod plugin that *obviously* written in SourcePawn. This allow players to get information of their basic statistic such as CI & SI kills, headshot kills, and headshot accuracy. This plugin work best in Coop mode.
 
 ## Console Variable (ConVar)
 - csr_version
