@@ -5,8 +5,8 @@
 #pragma tabsize 0
 
 #define PLUGIN_AUTHOR "MEP"
-#define PLUGIN_VERSION "1.0.0"
-#define PLUGIN_URL "https://github.com/suganda8/"
+#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_URL "https://forums.alliedmods.net/showthread.php?t=341241"
 
 #define ZC_SMOKER       1
 #define ZC_BOOMER       2
@@ -105,6 +105,7 @@ public Action Event_PlayerDeath(Handle event, char[] name, bool bDontBroadcast) 
         if (IS_SURVIVOR(attacker)) g_iChapterCIKills[attacker]++;
     } else {
         victim = GetEventInt(event, "userid");
+        if (victim == 0) return Plugin_Handled;
         int zClass = GetEntProp(GetClientOfUserId(victim), Prop_Send, "m_zombieClass");
 
         if (zClass >= ZC_SMOKER && zClass <= ZC_TANK) {

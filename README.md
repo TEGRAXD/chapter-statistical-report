@@ -19,6 +19,20 @@ Left 4 Dead is untested yet.
 Put `chapter_statistical_report.smx` in `path/to/server/left4dead2/sourcemod/addons/plugins/<here>`\
 cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemod/l4d2_chapter_statistical_report.cfg`
 
+## Version
+1.0.1
+
+## Changelog
+```
+2023-01-12 (v1.0.1)
+
+* Hotfix 'Property "m_zombieClass" not found (entity 0/worldspawn)'. 
+
+2023-01-12 (v1.0.0)
+
+* Initial release.
+```
+
 ## Screenshot
 ![](static/command.png)
 
