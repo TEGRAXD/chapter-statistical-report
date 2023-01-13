@@ -24,7 +24,7 @@ cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemo
 
 ## Changelog
 ```
-2023-01-12 (v1.0.1)
+2023-01-13 (v1.0.1)
 
 * Hotfix 'Property "m_zombieClass" not found (entity 0/worldspawn)'. 
 
