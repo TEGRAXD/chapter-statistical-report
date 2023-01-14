@@ -20,10 +20,14 @@ Put `chapter_statistical_report.smx` in `path/to/server/left4dead2/sourcemod/add
 cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemod/l4d2_chapter_statistical_report.cfg`
 
 ## Version
-1.0.1
+1.0.2
 
 ## Changelog
 ```
+2023-01-14 (v1.0.2) - Thanks to BloodyBlade
+
+* Hotfix inconsistent indentation warnings, add newdecls required pragma, and change EventHook callback parameter from 'Handle' to 'Event'. 
+
 2023-01-13 (v1.0.1)
 
 * Hotfix 'Property "m_zombieClass" not found (entity 0/worldspawn)'. 

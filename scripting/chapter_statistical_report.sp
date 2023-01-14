@@ -2,10 +2,10 @@
 #include <sdktools>
 
 #pragma semicolon 1
-#pragma tabsize 0
+#pragma newdecls required
 
 #define PLUGIN_AUTHOR "MEP"
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.0.2"
 #define PLUGIN_URL "https://forums.alliedmods.net/showthread.php?t=341241"
 
 #define ZC_SMOKER       1
@@ -53,21 +53,21 @@ public void OnPluginStart() {
     cvar_csr_hs_comp = CreateConVar("csr_headshot_accuracy_compare", "1", "1=Compare headshot to player's own kills, 2=Compare headshots to total kills", FCVAR_NOTIFY, true, 1.0, true, 2.0);
     cvar_csr_ignore_bots_kills = CreateConVar("csr_ignore_bots_kills", "0", "0=Calculate bots stats, 1=Do not calculate bots stats\nNote:\n- You need to change 'cvar_csr_hs_comp' to 2 for this to work.\n- This will affect 'cvar_csr_hs_comp' total kills (Excluding bots' kills)\n", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     cvar_csr_only_human_player = CreateConVar("csr_only_human_player", "0", "0=Print all players stats (Including bots), 1=Print only player stats", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	AutoExecConfig(true, "l4d2_chapter_statistical_report");
+    AutoExecConfig(true, "l4d2_chapter_statistical_report");
 
     cvar_csr_hs_comp.AddChangeHook(Action_ConVarChanged);
     cvar_csr_ignore_bots_kills.AddChangeHook(Action_ConVarChanged);
     cvar_csr_only_human_player.AddChangeHook(Action_ConVarChanged);
 
-	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
-	HookEvent("witch_killed", Event_WitchKilled, EventHookMode_Post);
+    HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
+    HookEvent("witch_killed", Event_WitchKilled, EventHookMode_Post);
 
-	HookEvent("map_transition", Event_MapTransition, EventHookMode_Pre);
-	HookEvent("finale_win", Event_FinaleWin, EventHookMode_Pre);
-	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
+    HookEvent("map_transition", Event_MapTransition, EventHookMode_Pre);
+    HookEvent("finale_win", Event_FinaleWin, EventHookMode_Pre);
+    HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 
-	RegConsoleCmd("sm_stats", Command_Statistic, "Display the current stats to client's chat. Stats will reset every chapter finished or chapter failed");
-	RegConsoleCmd("sm_teamstats", Command_TeamStatistic, "Display the current team stats to client's chat. Stats will reset every chapter finished or chapter failed");
+    RegConsoleCmd("sm_stats", Command_Statistic, "Display the current stats to client's chat. Stats will reset every chapter finished or chapter failed");
+    RegConsoleCmd("sm_teamstats", Command_TeamStatistic, "Display the current team stats to client's chat. Stats will reset every chapter finished or chapter failed");
 }
 
 public void Action_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -88,23 +88,23 @@ public Action Command_TeamStatistic(int client, int args) {
     return Plugin_Continue;
 }
 
-public Action Event_PlayerDeath(Handle event, char[] name, bool bDontBroadcast) {
-    int victim = GetEventInt(event, "entityid");
-	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
-	bool isHeadshot = GetEventBool(event, "headshot");
-
+public Action Event_PlayerDeath(Event event, char[] name, bool bDontBroadcast) {
+    int victim = event.GetInt("entityid");
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    bool isHeadshot = event.GetBool("headshot");
+    
     char infectedName[32];
-	char clsName[32];
+    char clsName[32];
 
-	GetEventString(event, "victimname", infectedName, sizeof(infectedName));
-	GetEntityClassname(victim, clsName, sizeof(clsName));
+    event.GetString("victimname", infectedName, sizeof(infectedName));
+    GetEntityClassname(victim, clsName, sizeof(clsName));
 
-	if (IS_SURVIVOR(attacker) && isHeadshot) g_iChapterHSKills[attacker]++;
+    if (IS_SURVIVOR(attacker) && isHeadshot) g_iChapterHSKills[attacker]++;
 
-	if (StrEqual(infectedName, "infected") || StrEqual(clsName, "infected")) {
+    if (StrEqual(infectedName, "infected") || StrEqual(clsName, "infected")) {
         if (IS_SURVIVOR(attacker)) g_iChapterCIKills[attacker]++;
     } else {
-        victim = GetEventInt(event, "userid");
+        victim = event.GetInt("userid");
         if (victim == 0) return Plugin_Handled;
         int zClass = GetEntProp(GetClientOfUserId(victim), Prop_Send, "m_zombieClass");
 
@@ -112,19 +112,19 @@ public Action Event_PlayerDeath(Handle event, char[] name, bool bDontBroadcast) 
             if (IS_SURVIVOR(attacker)) g_iChapterSIKills[attacker]++;
         }
     }
-
+    
     return Plugin_Continue;
 }
 
-public Action Event_WitchKilled(Handle event, char[] name, bool bDontBroadcast) {
-    int client = GetClientOfUserId(GetEventInt(event, "userid"));
+public Action Event_WitchKilled(Event event, char[] name, bool bDontBroadcast) {
+    int client = GetClientOfUserId(event.GetInt("userid"));
 
     if (IS_SURVIVOR(client)) g_iChapterSIKills[client]++;
 
     return Plugin_Continue;
 }
 
-public Action Event_MapTransition(Handle event, char[] name, bool bDontBroadcast) {
+public Action Event_MapTransition(Event event, char[] name, bool bDontBroadcast) {
     for (int i = 1; i <= MaxClients; i++) {
         if (IS_HUMAN_SURVIVOR(i)) PrintTeamStats(i);
     }
@@ -132,7 +132,7 @@ public Action Event_MapTransition(Handle event, char[] name, bool bDontBroadcast
     return Plugin_Continue;
 }
 
-public Action Event_FinaleWin(Handle event, char[] name, bool bDontBroadcast) {    
+public Action Event_FinaleWin(Event event, char[] name, bool bDontBroadcast) {    
     for (int i = 1; i <= MaxClients; i++) {
         if (IS_HUMAN_SURVIVOR(i)) PrintTeamStats(i);
     }
@@ -140,7 +140,7 @@ public Action Event_FinaleWin(Handle event, char[] name, bool bDontBroadcast) {
     return Plugin_Continue;
 }
 
-public Action Event_RoundStart(Handle event, char[] name, bool bDontBroadcast) {
+public Action Event_RoundStart(Event event, char[] name, bool bDontBroadcast) {
     ResetCampaignStats();
 
     return Plugin_Continue;
@@ -165,8 +165,8 @@ public void PrintClientStats(int client) {
 
     if (IS_SURVIVOR(client)) {
         char clientName[64];
-		GetClientName(client, clientName, sizeof(clientName));
-
+        GetClientName(client, clientName, sizeof(clientName));
+        
         int killCount  = 0;
 
         if (g_iCSRHsComp == 1) {
@@ -182,8 +182,8 @@ public void PrintClientStats(int client) {
             hsPercentage = (float(g_iChapterHSKills[client]) / float(killCount)) * 100;
             roundedHSPct = RoundFloat(hsPercentage);
         }
-
-		PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[client], g_iChapterSIKills[client], g_iChapterHSKills[client], roundedHSPct);
+        
+        PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[client], g_iChapterSIKills[client], g_iChapterHSKills[client], roundedHSPct);
     }
 }
 
