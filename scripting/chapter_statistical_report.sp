@@ -5,7 +5,7 @@
 #pragma newdecls required
 
 #define PLUGIN_AUTHOR "MEP"
-#define PLUGIN_VERSION "1.0.2"
+#define PLUGIN_VERSION "1.1.0"
 #define PLUGIN_URL "https://forums.alliedmods.net/showthread.php?t=341241"
 
 #define ZC_SMOKER       1
@@ -28,20 +28,24 @@
 #define IS_SURVIVOR(%1)         (IS_VALID_CLIENT(%1) && IsClientInGame(%1) && GetClientTeam(%1) == TEAM_SURVIVOR)
 #define IS_HUMAN_SURVIVOR(%1)   (IS_VALID_HUMAN(%1) && IS_SURVIVOR(%1))
 
-ConVar cvar_csr_hs_comp;
-ConVar cvar_csr_ignore_bots_kills;
-ConVar cvar_csr_only_human_player;
+ConVar g_cvarHsAccCompare;
+ConVar g_cvarIgnoreBotsKills;
+ConVar g_cvarOnlyHumanPlayer;
+ConVar g_cvarPrintMode;
+ConVar g_cvarStatsOnFailed;
 
-bool g_bCSRIgnoreBotsKills;
-bool g_bCSROnlyHumanPlayer;
+int g_iHsCompare;
+bool g_bIgnoreBotsKills;
+bool g_bOnlyHumanPlayer;
+bool g_bPrintMode;
+bool g_bStatsOnFailed;
 
-int g_iCSRHsComp;
 int g_iChapterCIKills[MAXPLAYERS + 1] = { 0, ... };
 int g_iChapterSIKills[MAXPLAYERS + 1] = { 0, ... };
 int g_iChapterHSKills[MAXPLAYERS + 1] = { 0, ... };
 
 public Plugin myinfo = {
-	name = "[L4D2] Chapter Statistical Report",
+	name = "[L4D/L4D2] Chapter Statistical Report",
 	author = PLUGIN_AUTHOR,
 	description = "Report Chapter Statistic such as CI and SI kills, Headshot kills, and Headshot Accuracy",
 	version = PLUGIN_VERSION,
@@ -50,42 +54,58 @@ public Plugin myinfo = {
 
 public void OnPluginStart() {
     CreateConVar("csr_version", PLUGIN_VERSION, "Chapter Statistical Report Version", FCVAR_DONTRECORD|FCVAR_NOTIFY);
-    cvar_csr_hs_comp = CreateConVar("csr_headshot_accuracy_compare", "1", "1=Compare headshot to player's own kills, 2=Compare headshots to total kills", FCVAR_NOTIFY, true, 1.0, true, 2.0);
-    cvar_csr_ignore_bots_kills = CreateConVar("csr_ignore_bots_kills", "0", "0=Calculate bots stats, 1=Do not calculate bots stats\nNote:\n- You need to change 'cvar_csr_hs_comp' to 2 for this to work.\n- This will affect 'cvar_csr_hs_comp' total kills (Excluding bots' kills)\n", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    cvar_csr_only_human_player = CreateConVar("csr_only_human_player", "0", "0=Print all players stats (Including bots), 1=Print only player stats", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_cvarHsAccCompare = CreateConVar("csr_headshot_accuracy_compare", "1", "1=Compare headshot to player's own kills, 2=Compare headshots to total kills", FCVAR_NOTIFY, true, 1.0, true, 2.0);
+    g_cvarIgnoreBotsKills = CreateConVar("csr_ignore_bots_kills", "0", "0=Add bots total kills for headshot accuracy compare, 1=Do not add bots total kills\nNote:\n- You need to change 'csr_headshot_accuracy_compare' to 2 for this to work.\n- This will affect 'csr_headshot_accuracy_compare' total kills (Excluding bots' kills)\n", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_cvarOnlyHumanPlayer = CreateConVar("csr_only_human_player", "0", "0=Print all players stats (Including bots), 1=Print only player stats", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_cvarPrintMode = CreateConVar("csr_print_mode", "0", "0=Print to Chat, 1=Print to Console", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_cvarStatsOnFailed = CreateConVar("csr_stats_on_failed", "0", "0=Do not print stats when mission failed / lost, 1=Print stats when mission failed / lost", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
     AutoExecConfig(true, "l4d2_chapter_statistical_report");
 
-    cvar_csr_hs_comp.AddChangeHook(Action_ConVarChanged);
-    cvar_csr_ignore_bots_kills.AddChangeHook(Action_ConVarChanged);
-    cvar_csr_only_human_player.AddChangeHook(Action_ConVarChanged);
+    g_cvarHsAccCompare.AddChangeHook(Action_ConVarChanged);
+    g_cvarIgnoreBotsKills.AddChangeHook(Action_ConVarChanged);
+    g_cvarOnlyHumanPlayer.AddChangeHook(Action_ConVarChanged);
+    g_cvarPrintMode.AddChangeHook(Action_ConVarChanged);
+    g_cvarStatsOnFailed.AddChangeHook(Action_ConVarChanged);
 
     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
     HookEvent("witch_killed", Event_WitchKilled, EventHookMode_Post);
 
     HookEvent("map_transition", Event_MapTransition, EventHookMode_Pre);
     HookEvent("finale_win", Event_FinaleWin, EventHookMode_Pre);
+    HookEvent("mission_lost", Event_MissionLost, EventHookMode_Pre);
     HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 
-    RegConsoleCmd("sm_stats", Command_Statistic, "Display the current stats to client's chat. Stats will reset every chapter finished or chapter failed");
-    RegConsoleCmd("sm_teamstats", Command_TeamStatistic, "Display the current team stats to client's chat. Stats will reset every chapter finished or chapter failed");
+    RegConsoleCmd("sm_stats", Command_Statistics, "Display the current stats to client's chat.");
+    RegConsoleCmd("sm_teamstats", Command_TeamStatistics, "Display the current team stats to client's chat.");
+    RegAdminCmd("sm_resetstats", Command_ResetStatistics, ADMFLAG_GENERIC, "Let admin reset all survivors stats.");
 }
 
 public void Action_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
-    g_iCSRHsComp = cvar_csr_hs_comp.IntValue;
-    g_bCSRIgnoreBotsKills = cvar_csr_ignore_bots_kills.BoolValue;
-    g_bCSROnlyHumanPlayer = cvar_csr_only_human_player.BoolValue;
+    g_iHsCompare = g_cvarHsAccCompare.IntValue;
+    g_bIgnoreBotsKills = g_cvarIgnoreBotsKills.BoolValue;
+    g_bOnlyHumanPlayer = g_cvarOnlyHumanPlayer.BoolValue;
+    g_bPrintMode = g_cvarPrintMode.BoolValue;
+    g_bStatsOnFailed = g_cvarStatsOnFailed.BoolValue;
 }
 
-public Action Command_Statistic(int client, int args) {
+public Action Command_Statistics(int client, int args) {
     PrintClientStats(client);
 
-    return Plugin_Continue;
+    return Plugin_Handled;
 }
 
-public Action Command_TeamStatistic(int client, int args) {
+public Action Command_TeamStatistics(int client, int args) {
     PrintTeamStats(client);
 
-    return Plugin_Continue;
+    return Plugin_Handled;
+}
+
+public Action Command_ResetStatistics(int client, int args) {
+    ResetCampaignStats();
+    PrintToChat(client, "\x04[CSR] \x01Statistics have sucessfully \x03reset\x01.");
+
+    return Plugin_Handled;
 }
 
 public Action Event_PlayerDeath(Event event, char[] name, bool bDontBroadcast) {
@@ -140,6 +160,16 @@ public Action Event_FinaleWin(Event event, char[] name, bool bDontBroadcast) {
     return Plugin_Continue;
 }
 
+public Action Event_MissionLost(Event event, char[] name, bool bDontBroadcast) {
+    if (g_bStatsOnFailed) {
+        for (int i = 1; i <= MaxClients; i++) {
+            if (IS_HUMAN_SURVIVOR(i)) PrintTeamStats(i);
+        }
+    }
+
+    return Plugin_Continue;
+}
+
 public Action Event_RoundStart(Event event, char[] name, bool bDontBroadcast) {
     ResetCampaignStats();
 
@@ -150,7 +180,7 @@ public int GetTotalKills() {
     int kills = 0;
 
     for (int i = 1; i <= MaxClients; i++) {
-        if (g_bCSRIgnoreBotsKills) {
+        if (g_bIgnoreBotsKills) {
             if (IS_HUMAN_SURVIVOR(i)) kills += (g_iChapterCIKills[i] + g_iChapterSIKills[i]);
         } else {
             if (IS_SURVIVOR(i)) kills += (g_iChapterCIKills[i] + g_iChapterSIKills[i]);
@@ -161,15 +191,20 @@ public int GetTotalKills() {
 }
 
 public void PrintClientStats(int client) {
-    PrintToChat(client, "\x04[STATS] \x03Chapter Statistical Report");
-
+    if (g_bPrintMode) {
+        PrintToChat(client, "\x04[STATS] \x01Your statistics printed on the \x03Console\x01.");
+        PrintToConsole(client, "\x04[STATS] \x03Chapter Statistical Report");
+    } else {
+        PrintToChat(client, "\x04[STATS] \x03Chapter Statistical Report");
+    }
+    
     if (IS_SURVIVOR(client)) {
         char clientName[64];
         GetClientName(client, clientName, sizeof(clientName));
         
         int killCount  = 0;
 
-        if (g_iCSRHsComp == 1) {
+        if (g_iHsCompare == 1) {
             killCount = g_iChapterCIKills[client] + g_iChapterSIKills[client];
         } else {
             killCount = GetTotalKills();
@@ -182,23 +217,32 @@ public void PrintClientStats(int client) {
             hsPercentage = (float(g_iChapterHSKills[client]) / float(killCount)) * 100;
             roundedHSPct = RoundFloat(hsPercentage);
         }
-        
-        PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[client], g_iChapterSIKills[client], g_iChapterHSKills[client], roundedHSPct);
+
+        if (g_bPrintMode) {
+            PrintToConsole(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[client], g_iChapterSIKills[client], g_iChapterHSKills[client], roundedHSPct);
+        } else {
+            PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[client], g_iChapterSIKills[client], g_iChapterHSKills[client], roundedHSPct);
+        }
     }
 }
 
 public void PrintTeamStats(int client) {
-    PrintToChat(client, "\x04[STATS] \x03Chapter Statistical Report");
+    if (g_bPrintMode) {
+        PrintToChat(client, "\x04[STATS] \x01Team statistics printed on the \x03Console\x01.");
+        PrintToConsole(client, "\x04[STATS] \x03Chapter Statistical Report");
+    } else {
+        PrintToChat(client, "\x04[STATS] \x03Chapter Statistical Report");
+    }
 
     for (int i = 1; i <= MaxClients; i++) {
-        if (g_bCSROnlyHumanPlayer) {
+        if (g_bOnlyHumanPlayer) {
             if (IS_HUMAN_SURVIVOR(i)) {
                 char clientName[64];
                 GetClientName(i, clientName, sizeof(clientName));
 
                 int killCount  = 0;
 
-                if (g_iCSRHsComp == 1) {
+                if (g_iHsCompare == 1) {
                     killCount = g_iChapterCIKills[client] + g_iChapterSIKills[client];
                 } else {
                     killCount = GetTotalKills();
@@ -212,7 +256,11 @@ public void PrintTeamStats(int client) {
                     roundedHSPct = RoundFloat(hsPercentage);
                 }
                 
-                PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[i], g_iChapterSIKills[i], g_iChapterHSKills[i], roundedHSPct);
+                if (g_bPrintMode) {
+                    PrintToConsole(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[i], g_iChapterSIKills[i], g_iChapterHSKills[i], roundedHSPct);
+                } else {
+                    PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[i], g_iChapterSIKills[i], g_iChapterHSKills[i], roundedHSPct);
+                }
             }
         } else {
             if (IS_SURVIVOR(i)) {
@@ -221,7 +269,7 @@ public void PrintTeamStats(int client) {
 
                 int killCount  = 0;
 
-                if (g_iCSRHsComp == 1) {
+                if (g_iHsCompare == 1) {
                     killCount = g_iChapterCIKills[client] + g_iChapterSIKills[client];
                 } else {
                     killCount = GetTotalKills();
@@ -235,7 +283,11 @@ public void PrintTeamStats(int client) {
                     roundedHSPct = RoundFloat(hsPercentage);
                 }
                 
-                PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[i], g_iChapterSIKills[i], g_iChapterHSKills[i], roundedHSPct);
+                if (g_bPrintMode) {
+                    PrintToConsole(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[i], g_iChapterSIKills[i], g_iChapterHSKills[i], roundedHSPct);
+                } else {
+                    PrintToChat(client, "\x04[!] \x03%s \x01- \x04CI \x01(\x05%d\x01) \x01- \x04SI \x01(\x05%d\x01) \x01- \x04HS \x01(\x05%d\x01) \x01- \x04HS Acc. \x01(\x05%i%%\x01)", clientName, g_iChapterCIKills[i], g_iChapterSIKills[i], g_iChapterHSKills[i], roundedHSPct);
+                }
             }
         }
     }
@@ -243,8 +295,10 @@ public void PrintTeamStats(int client) {
 
 public void ResetCampaignStats() {
     for (int i = 1; i <= MaxClients; i++) {
-        g_iChapterCIKills[i] = 0;
-        g_iChapterSIKills[i] = 0;
-        g_iChapterHSKills[i] = 0;
+        if (IS_VALID_CLIENT(i) && IsClientInGame(i)) {
+            g_iChapterCIKills[i] = 0;
+            g_iChapterSIKills[i] = 0;
+            g_iChapterHSKills[i] = 0;
+        }
     }
 }

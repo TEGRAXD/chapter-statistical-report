@@ -6,24 +6,30 @@ Chapter Statistical Report is a SourceMod plugin that *obviously* written in Sou
 - csr_headshot_accuracy_compare (default: 1)
 - csr_ignore_bots_kills (default: 0)
 - csr_only_human_player (default: 0)
+- csr_print_mode (default: 0)
+- csr_stats_on_failed (default: 0)
 
 ## Commands
 - sm_stats
 - sm_teamstats
+- sm_resetstats (Admin - General Flag)
 
 ## Note
-CSR only work for Left 4 Dead 2.\
-Left 4 Dead is untested yet.
+Work with L4D / L4D2.
 
 ## Installation
 Put `chapter_statistical_report.smx` in `path/to/server/left4dead2/sourcemod/addons/plugins/<here>`\
 cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemod/l4d2_chapter_statistical_report.cfg`
 
 ## Version
-1.0.2
+1.1.0
 
 ## Changelog
 ```
+2023-02-05 (v1.1.0)
+
+* Reset command, 2 new cvars (csr_print_mode & csr_stats_on_failed).
+
 2023-01-14 (v1.0.2) - Thanks to BloodyBlade
 
 * Hotfix inconsistent indentation warnings, add newdecls required pragma, and change EventHook callback parameter from 'Handle' to 'Event'. 
