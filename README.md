@@ -28,7 +28,7 @@ cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemo
 ```
 2023-02-06 (v1.1.1)
 
-* Hotfix 'Stats not resetting issue'.
+* Hotfix 'Stats not resetting' issue.
 
 2023-02-05 (v1.1.0)
 
