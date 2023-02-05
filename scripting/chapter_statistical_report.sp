@@ -295,7 +295,7 @@ public void PrintTeamStats(int client) {
 
 public void ResetCampaignStats() {
     for (int i = 1; i <= MaxClients; i++) {
-        if (IS_VALID_CLIENT(i) && IsClientInGame(i)) {
+        if (IS_VALID_CLIENT(i)) {
             g_iChapterCIKills[i] = 0;
             g_iChapterSIKills[i] = 0;
             g_iChapterHSKills[i] = 0;
