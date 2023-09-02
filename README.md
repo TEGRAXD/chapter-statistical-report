@@ -23,11 +23,11 @@ Put `chapter_statistical_report.smx` in `path/to/server/left4dead2/sourcemod/add
 cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemod/l4d2_chapter_statistical_report.cfg`
 
 ## Version
-1.2.1
+1.2.0
 
 ## Changelog
 ```
-2023-09-02 (v1.2.1)
+2023-09-02 (v1.2.0)
 
 * Add new cvar csr_reset_stats to reset stats in either round/campaign end.
 

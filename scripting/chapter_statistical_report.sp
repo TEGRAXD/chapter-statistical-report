@@ -6,7 +6,7 @@
 #pragma newdecls required
 
 #define PLUGIN_AUTHOR "MEP"
-#define PLUGIN_VERSION "1.2.1"
+#define PLUGIN_VERSION "1.2.0"
 #define PLUGIN_URL "https://forums.alliedmods.net/showthread.php?t=341241"
 
 #define ZC_SMOKER       1
