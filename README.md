@@ -8,6 +8,7 @@ Chapter Statistical Report is a SourceMod plugin that *obviously* written in Sou
 - csr_only_human_player (default: 0)
 - csr_print_mode (default: 0)
 - csr_stats_on_failed (default: 0)
+- csr_reset_stats (default: 0)
 
 ## Commands
 - sm_stats
@@ -22,10 +23,14 @@ Put `chapter_statistical_report.smx` in `path/to/server/left4dead2/sourcemod/add
 cfg file will automatically generated in `path/to/server/left4dead2/cfg/sourcemod/l4d2_chapter_statistical_report.cfg`
 
 ## Version
-1.1.1
+1.2.1
 
 ## Changelog
 ```
+2023-09-02 (v1.2.1)
+
+* Add new cvar csr_reset_stats to reset stats in either round/campaign end.
+
 2023-02-06 (v1.1.1)
 
 * Hotfix 'Stats not resetting' issue.

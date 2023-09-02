@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include <sdktools>
+#include <left4dhooks>
 
 #pragma semicolon 1
 #pragma newdecls required
 
 #define PLUGIN_AUTHOR "MEP"
-#define PLUGIN_VERSION "1.1.1"
+#define PLUGIN_VERSION "1.2.1"
 #define PLUGIN_URL "https://forums.alliedmods.net/showthread.php?t=341241"
 
 #define ZC_SMOKER       1
@@ -33,12 +34,14 @@ ConVar g_cvarIgnoreBotsKills;
 ConVar g_cvarOnlyHumanPlayer;
 ConVar g_cvarPrintMode;
 ConVar g_cvarStatsOnFailed;
+ConVar g_cvarResetStats;
 
 int g_iHsCompare;
 bool g_bIgnoreBotsKills;
 bool g_bOnlyHumanPlayer;
 bool g_bPrintMode;
 bool g_bStatsOnFailed;
+bool g_bResetStatsMode;
 
 int g_iChapterCIKills[MAXPLAYERS + 1] = { 0, ... };
 int g_iChapterSIKills[MAXPLAYERS + 1] = { 0, ... };
@@ -54,11 +57,12 @@ public Plugin myinfo = {
 
 public void OnPluginStart() {
     CreateConVar("csr_version", PLUGIN_VERSION, "Chapter Statistical Report Version", FCVAR_DONTRECORD|FCVAR_NOTIFY);
-    g_cvarHsAccCompare = CreateConVar("csr_headshot_accuracy_compare", "1", "1=Compare headshot to player's own kills, 2=Compare headshots to total kills", FCVAR_NOTIFY, true, 1.0, true, 2.0);
+    g_cvarHsAccCompare = CreateConVar("csr_headshot_accuracy_compare", "1", "1=Compare headshot to player's own kills, 2=Compare headshots to all players total kills", FCVAR_NOTIFY, true, 1.0, true, 2.0);
     g_cvarIgnoreBotsKills = CreateConVar("csr_ignore_bots_kills", "0", "0=Add bots total kills for headshot accuracy compare, 1=Do not add bots total kills\nNote:\n- You need to change 'csr_headshot_accuracy_compare' to 2 for this to work.\n- This will affect 'csr_headshot_accuracy_compare' total kills (Excluding bots' kills)\n", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_cvarOnlyHumanPlayer = CreateConVar("csr_only_human_player", "0", "0=Print all players stats (Including bots), 1=Print only player stats", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_cvarPrintMode = CreateConVar("csr_print_mode", "0", "0=Print to Chat, 1=Print to Console", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_cvarStatsOnFailed = CreateConVar("csr_stats_on_failed", "0", "0=Do not print stats when mission failed / lost, 1=Print stats when mission failed / lost", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_cvarResetStats = CreateConVar("csr_reset_stats", "0","0=Reset stats on round/chapter start, 1=Reset stats on map end", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
     AutoExecConfig(true, "l4d2_chapter_statistical_report");
 
@@ -67,6 +71,7 @@ public void OnPluginStart() {
     g_cvarOnlyHumanPlayer.AddChangeHook(Action_ConVarChanged);
     g_cvarPrintMode.AddChangeHook(Action_ConVarChanged);
     g_cvarStatsOnFailed.AddChangeHook(Action_ConVarChanged);
+    g_cvarResetStats.AddChangeHook(Action_ConVarChanged);
 
     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
     HookEvent("witch_killed", Event_WitchKilled, EventHookMode_Post);
@@ -87,6 +92,7 @@ public void Action_ConVarChanged(ConVar convar, const char[] oldValue, const cha
     g_bOnlyHumanPlayer = g_cvarOnlyHumanPlayer.BoolValue;
     g_bPrintMode = g_cvarPrintMode.BoolValue;
     g_bStatsOnFailed = g_cvarStatsOnFailed.BoolValue;
+    g_bResetStatsMode = g_cvarResetStats.BoolValue;
 }
 
 public Action Command_Statistics(int client, int args) {
@@ -171,8 +177,15 @@ public Action Event_MissionLost(Event event, char[] name, bool bDontBroadcast) {
 }
 
 public Action Event_RoundStart(Event event, char[] name, bool bDontBroadcast) {
-    ResetCampaignStats();
+    if (!g_bResetStatsMode) {
+        ResetCampaignStats();
+    } else {
+        if (L4D_IsFirstMapInScenario()) {
+            ResetCampaignStats();
+        }
+    }
 
+    
     return Plugin_Continue;
 }
 
